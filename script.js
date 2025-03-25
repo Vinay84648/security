@@ -12,8 +12,16 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentTrack = null;
     const ctx = canvas.getContext('2d');
 
+    // Check if browser supports getUserMedia
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        resultText.textContent = 'Your browser does not support camera access. Please use Chrome, Firefox or Safari.';
+        return; // Exit early if not supported
+    }
+
     // Start scanning automatically when page loads
-    startScanner();
+    setTimeout(() => {
+        startScanner();
+    }, 500); // Small delay to ensure DOM is ready
 
     // Flash button event listener
     flashButton.addEventListener('click', toggleFlash);
@@ -22,80 +30,142 @@ document.addEventListener('DOMContentLoaded', () => {
     function toggleFlash() {
         if (!currentTrack || flashButton.disabled) return;
         
-        if (flashOn) {
-            // Turn off flash
-            currentTrack.applyConstraints({
-                advanced: [{ torch: false }]
-            }).then(() => {
-                flashOn = false;
-                flashButton.classList.remove('active');
-            }).catch(err => {
-                console.error('Flash control error:', err);
-                resultText.textContent = 'Flash control not supported on this device';
+        try {
+            // Check if torch is actually supported
+            const capabilities = currentTrack.getCapabilities ? currentTrack.getCapabilities() : {};
+            if (!capabilities || !capabilities.torch) {
+                flashButton.disabled = true;
+                resultText.textContent = 'Flash not available on this device';
                 setTimeout(() => {
                     resultText.textContent = 'Point your camera at a QR code';
                 }, 2000);
-            });
-        } else {
-            // Turn on flash
-            currentTrack.applyConstraints({
-                advanced: [{ torch: true }]
-            }).then(() => {
-                flashOn = true;
-                flashButton.classList.add('active');
-            }).catch(err => {
-                console.error('Flash control error:', err);
-                resultText.textContent = 'Flash control not supported on this device';
-                setTimeout(() => {
-                    resultText.textContent = 'Point your camera at a QR code';
-                }, 2000);
-            });
+                return;
+            }
+            
+            if (flashOn) {
+                // Turn off flash
+                currentTrack.applyConstraints({
+                    advanced: [{ torch: false }]
+                })
+                .then(() => {
+                    flashOn = false;
+                    flashButton.classList.remove('active');
+                })
+                .catch(err => {
+                    console.error('Flash control error:', err);
+                    flashButton.disabled = true;
+                });
+            } else {
+                // Turn on flash
+                currentTrack.applyConstraints({
+                    advanced: [{ torch: true }]
+                })
+                .then(() => {
+                    flashOn = true;
+                    flashButton.classList.add('active');
+                })
+                .catch(err => {
+                    console.error('Flash control error:', err);
+                    flashButton.disabled = true;
+                    resultText.textContent = 'Flash control not available';
+                    setTimeout(() => {
+                        resultText.textContent = 'Point your camera at a QR code';
+                    }, 2000);
+                });
+            }
+        } catch (error) {
+            console.error('Flash toggle error:', error);
+            flashButton.disabled = true;
         }
     }
 
-    // Function to start the scanner
+    // Function to start the scanner with multiple fallback options
     async function startScanner() {
         try {
             resultText.textContent = 'Accessing camera...';
             
-            // Request camera access
-            stream = await navigator.mediaDevices.getUserMedia({ 
-                video: { 
-                    facingMode: 'environment', // Use back camera if available
-                    width: { ideal: 1280 },
-                    height: { ideal: 720 }
-                } 
-            });
+            // Try multiple approaches for camera access
+            try {
+                // First attempt: environment facing camera (back camera)
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: { exact: 'environment' } }
+                });
+            } catch (err1) {
+                console.log('Exact environment camera failed, trying without exact constraint');
+                
+                try {
+                    // Second attempt: prefer environment camera but don't require it
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: 'environment' }
+                    });
+                } catch (err2) {
+                    console.log('Environment camera failed, trying any camera');
+                    
+                    try {
+                        // Third attempt: any camera
+                        stream = await navigator.mediaDevices.getUserMedia({
+                            video: true
+                        });
+                    } catch (err3) {
+                        console.error('All camera access attempts failed');
+                        throw new Error('Unable to access any camera');
+                    }
+                }
+            }
+            
+            console.log('Camera access successful');
             
             // Set video source to camera stream
             video.srcObject = stream;
             video.setAttribute('playsinline', true); // Important for iOS
+            video.setAttribute('autoplay', true);
             
             // Get the video track for torch control
             currentTrack = stream.getVideoTracks()[0];
+            console.log('Video track obtained:', currentTrack.label);
             
-            // Check if torch is supported
-            if (currentTrack.getCapabilities && currentTrack.getCapabilities().torch) {
-                flashButton.disabled = false;
-            } else {
+            // Safely check if torch is supported
+            try {
+                const capabilities = currentTrack.getCapabilities ? currentTrack.getCapabilities() : {};
+                flashButton.disabled = !(capabilities && capabilities.torch);
+                console.log('Torch capability:', capabilities && capabilities.torch ? 'Available' : 'Not available');
+            } catch (e) {
+                console.error('Error checking torch capability:', e);
                 flashButton.disabled = true;
             }
             
-            // Start video and scanning
-            await video.play();
+            // Start video and wait for it to be ready
+            try {
+                await video.play();
+                console.log('Video playback started');
+            } catch (playError) {
+                console.error('Error playing video:', playError);
+                resultText.textContent = 'Error starting video. Please refresh and try again.';
+                return;
+            }
+            
+            // Set up canvas for QR scanning
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
+            console.log('Canvas size set:', canvas.width, 'x', canvas.height);
             
+            // Start scanning
             scanning = true;
             scanQRCode();
             
             resultText.textContent = 'Point your camera at a QR code';
         } catch (error) {
-            console.error('Error accessing camera:', error);
+            console.error('Camera access error:', error);
             if (error.name === 'NotAllowedError') {
-                resultText.textContent = 'Camera access denied. Please grant camera permissions.';
+                resultText.textContent = 'Camera access denied. Please grant camera permissions and refresh.';
+            } else if (error.name === 'NotFoundError') {
+                resultText.textContent = 'No camera found on this device.';
+            } else if (error.name === 'NotReadableError' || error.name === 'AbortError') {
+                resultText.textContent = 'Camera is already in use or not readable.';
+            } else if (error.name === 'OverconstrainedError') {
+                resultText.textContent = 'Camera constraints cannot be satisfied. Please use a different browser.';
             } else {
-                resultText.textContent = `Error: ${error.message}. Please refresh the page to try again.`;
+                resultText.textContent = 'Camera error: ' + (error.message || 'Unknown error');
             }
         }
     }
