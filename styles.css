@@ -129,12 +129,14 @@ html, body {
     left: 0;
     width: 100%;
     text-align: center;
-    padding: 10px;
+    padding: 12px;
     font-size: 16px;
     color: #fff;
     background-color: rgba(0, 0, 0, 0.7);
     z-index: 20;
     font-weight: bold;
+    transition: color 0.3s ease;
+    line-height: 1.5;
 }
 
 /* Animation for scanner border */
@@ -151,6 +153,18 @@ html, body {
         transform: scale(1);
         opacity: 1;
     }
+}
+
+/* Warning message animation */
+@keyframes warning-flash {
+    0%, 100% { background-color: rgba(136, 0, 0, 0.7); }
+    50% { background-color: rgba(0, 0, 0, 0.7); }
+}
+
+/* Apply warning animation to result text */
+.result-text.warning {
+    animation: warning-flash 1s infinite;
+    color: #ff4444;
 }
 
 /* Media queries for different screen sizes */
