@@ -279,6 +279,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    
     // Handle page visibility changes to stop scanner when page is not visible
     document.addEventListener('visibilitychange', () => {
         if (document.hidden && stream) {
