@@ -2,14 +2,15 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>QR Code Scanner</title>
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 </head>
 <body>
     <div class="fullscreen-container">
-        <video id="video" playsinline></video>
+        <video id="video" playsinline autoplay muted></video>
         <canvas id="canvas" hidden></canvas>
         
         <div class="scanner-overlay">
@@ -22,7 +23,7 @@
             </svg>
         </button>
         
-        <div id="result-text" class="result-text">Accessing camera...</div>
+        <div id="result-text" class="result-text">Checking camera access...</div>
     </div>
     
     <script src="script.js"></script>
