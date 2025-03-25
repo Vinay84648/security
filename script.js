@@ -191,6 +191,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Function to briefly pause scanning (for showing warnings)
+    function pauseScanning(duration = 3000) {
+        scanning = false;
+        
+        // Resume scanning after duration
+        setTimeout(() => {
+            if (stream) {
+                scanning = true;
+                scanQRCode();
+                resultText.textContent = 'Point your camera at a QR code';
+            }
+        }, duration);
+    }
+
     // Function to scan for QR codes in video frame
     function scanQRCode() {
         if (!scanning) return;
@@ -210,18 +224,35 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 // If QR code found
                 if (code) {
+                    const content = code.data;
+                    console.log('QR code detected:', content);
+                    
                     // Check if the result is a URL
-                    const url = code.data;
-                    if (isValidURL(url)) {
+                    if (isValidURL(content)) {
                         // Stop scanning
                         scanning = false;
                         stopScanner();
                         
                         // Display the URL
-                        resultText.textContent = `Found URL: ${url}\nRedirecting...`;
+                        resultText.textContent = `Found URL: ${content}\nRedirecting...`;
                         
                         // Navigate to the URL immediately
-                        window.location.href = url;
+                        window.location.href = content;
+                        
+                        return;
+                    } else {
+                        // Not a URL - show warning
+                        resultText.textContent = 'UNAUTHORIZED REQUEST: QR code does not contain a valid URL';
+                        resultText.classList.add('warning');
+                        
+                        // Pause scanning briefly to show the warning
+                        pauseScanning(3000);
+                        
+                        // Reset text color and remove warning class after warning
+                        setTimeout(() => {
+                            resultText.style.color = '#fff';
+                            resultText.classList.remove('warning');
+                        }, 3000);
                         
                         return;
                     }
@@ -241,8 +272,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Function to validate URLs
     function isValidURL(string) {
         try {
-            new URL(string);
-            return true;
+            const url = new URL(string);
+            return url.protocol === 'http:' || url.protocol === 'https:';
         } catch (_) {
             return false;
         }
