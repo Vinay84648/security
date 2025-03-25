@@ -64,6 +64,7 @@ html, body {
     position: relative;
     box-shadow: 0 0 0 5000px rgba(0, 0, 0, 0.7); /* Dark overlay outside scan area */
     animation: pulse 2s infinite;
+    overflow: hidden; /* Contain the scanning line */
 }
 
 .scanner-border::before {
@@ -88,6 +89,44 @@ html, body {
     border-bottom: 5px solid #fff;
     border-right: 5px solid #fff;
     border-radius: 0 0 10px 0;
+}
+
+/* Scanning line animation - make it more prominent */
+.scanning-line {
+    position: absolute;
+    width: 100%;
+    height: 2px; /* Thinner line */
+    background: linear-gradient(to right, transparent, #00ff00, #00ff00, #00ff00, transparent); /* Brighter green with gradient edges */
+    box-shadow: 0 0 15px 5px rgba(0, 255, 0, 0.5); /* Stronger glow effect */
+    top: 0;
+    left: 0;
+    animation: scan-animation 2s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite; /* Smoother animation */
+    z-index: 2;
+    pointer-events: none;
+}
+
+/* Additional line shadow for more depth */
+.scanning-line::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 255, 0, 0.3);
+    filter: blur(3px);
+}
+
+@keyframes scan-animation {
+    0% {
+        top: 10px; /* Start a bit below the top edge */
+    }
+    50% {
+        top: calc(100% - 12px); /* End a bit above the bottom edge */
+    }
+    100% {
+        top: 10px;
+    }
 }
 
 .flash-button {
