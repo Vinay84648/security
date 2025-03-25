@@ -3,6 +3,7 @@
     padding: 0;
     box-sizing: border-box;
     font-family: 'Arial', sans-serif;
+    -webkit-tap-highlight-color: transparent;
 }
 
 html, body {
@@ -11,6 +12,7 @@ html, body {
     overflow: hidden;
     background-color: #000;
     color: #fff;
+    position: fixed; /* Prevent scrolling */
 }
 
 .fullscreen-container {
@@ -33,7 +35,12 @@ html, body {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    opacity: 0.4; /* Darken the video feed */
+    opacity: 0.5; /* Slightly increased opacity for better visibility */
+    z-index: 1;
+}
+
+#canvas {
+    display: none; /* Ensure canvas is hidden */
 }
 
 .scanner-overlay {
@@ -99,6 +106,8 @@ html, body {
     cursor: pointer;
     z-index: 20;
     transition: background-color 0.3s, transform 0.2s;
+    -webkit-appearance: none; /* For iOS */
+    appearance: none;
 }
 
 .flash-button:disabled {
@@ -121,10 +130,11 @@ html, body {
     width: 100%;
     text-align: center;
     padding: 10px;
-    font-size: 14px;
+    font-size: 16px;
     color: #fff;
-    background-color: rgba(0, 0, 0, 0.6);
+    background-color: rgba(0, 0, 0, 0.7);
     z-index: 20;
+    font-weight: bold;
 }
 
 /* Animation for scanner border */
